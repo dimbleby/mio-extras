@@ -4,12 +4,10 @@ use convert;
 use mio::{Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
 use lazycell::LazyCell;
 use slab::Slab;
-use std::{cmp, error, fmt, io, u64, usize, iter, thread};
+use std::{cmp, fmt, io, u64, usize, iter, thread};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
-
-use self::TimerErrorKind::TimerOverflow;
 
 pub struct Timer<T> {
     // Size of each tick in milliseconds
@@ -82,25 +80,6 @@ const TICK_MAX: Tick = u64::MAX;
 // Manages communication with wakeup thread
 type WakeupState = Arc<AtomicUsize>;
 
-pub type Result<T> = ::std::result::Result<T, TimerError>;
-// TODO: remove
-pub type TimerResult<T> = Result<T>;
-
-
-#[derive(Debug)]
-pub struct TimerError {
-    kind: TimerErrorKind,
-    desc: &'static str,
-}
-
-#[derive(Debug)]
-pub enum TimerErrorKind {
-    TimerOverflow,
-}
-
-// TODO: Remove
-pub type OldTimerResult<T> = Result<T>;
-
 const TERMINATE_THREAD: usize = 0;
 const EMPTY: usize = usize::MAX;
 
@@ -155,12 +134,12 @@ impl<T> Timer<T> {
         }
     }
 
-    pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Result<Timeout> {
+    pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Timeout {
         let delay_from_start = self.start.elapsed() + delay_from_now;
         self.set_timeout_at(delay_from_start, state)
     }
 
-    fn set_timeout_at(&mut self, delay_from_start: Duration, state: T) -> Result<Timeout> {
+    fn set_timeout_at(&mut self, delay_from_start: Duration, state: T) -> Timeout {
         let mut tick = duration_to_tick(delay_from_start, self.tick_ms);
         trace!("setting timeout; delay={:?}; tick={:?}; current-tick={:?}", delay_from_start, tick, self.tick);
 
@@ -172,7 +151,7 @@ impl<T> Timer<T> {
         self.insert(tick, state)
     }
 
-    fn insert(&mut self, tick: Tick, state: T) -> Result<Timeout> {
+    fn insert(&mut self, tick: Tick, state: T) -> Timeout {
         // Get the slot for the requested tick
         let slot = (tick & self.mask) as usize;
         let curr = self.wheel[slot];
@@ -197,10 +176,10 @@ impl<T> Timer<T> {
         trace!("inserted timout; slot={}; token={:?}", slot, token);
 
         // Return the new timeout
-        Ok(Timeout {
+        Timeout {
             token: token,
             tick: tick
-        })
+        }
     }
 
     pub fn cancel_timeout(&mut self, timeout: &Timeout) -> Option<T> {
@@ -483,26 +462,6 @@ impl<T> Entry<T> {
     }
 }
 
-impl fmt::Display for TimerError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}: {}", self.kind, self.desc)
-    }
-}
-
-impl error::Error for TimerError {
-    fn description(&self) -> &str {
-        self.desc
-    }
-}
-
-impl fmt::Display for TimerErrorKind {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            TimerOverflow => write!(fmt, "TimerOverflow"),
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -513,7 +472,7 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
 
         tick = ms_to_tick(&t, 50);
         assert_eq!(None, t.poll_to(tick));
@@ -536,7 +495,7 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        let to = t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
+        let to = t.set_timeout_at(Duration::from_millis(100), "a");
         assert_eq!("a", t.cancel_timeout(&to).unwrap());
 
         tick = ms_to_tick(&t, 100);
@@ -553,8 +512,8 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(100), "b").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
+        t.set_timeout_at(Duration::from_millis(100), "b");
 
         let mut rcv = vec![];
 
@@ -578,11 +537,11 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(110), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(220), "b").unwrap();
-        t.set_timeout_at(Duration::from_millis(230), "c").unwrap();
-        t.set_timeout_at(Duration::from_millis(440), "d").unwrap();
-        t.set_timeout_at(Duration::from_millis(560), "e").unwrap();
+        t.set_timeout_at(Duration::from_millis(110), "a");
+        t.set_timeout_at(Duration::from_millis(220), "b");
+        t.set_timeout_at(Duration::from_millis(230), "c");
+        t.set_timeout_at(Duration::from_millis(440), "d");
+        t.set_timeout_at(Duration::from_millis(560), "e");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -612,10 +571,10 @@ mod test {
     pub fn test_catching_up() {
         let mut t = timer();
 
-        t.set_timeout_at(Duration::from_millis(110), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(220), "b").unwrap();
-        t.set_timeout_at(Duration::from_millis(230), "c").unwrap();
-        t.set_timeout_at(Duration::from_millis(440), "d").unwrap();
+        t.set_timeout_at(Duration::from_millis(110), "a");
+        t.set_timeout_at(Duration::from_millis(220), "b");
+        t.set_timeout_at(Duration::from_millis(230), "c");
+        t.set_timeout_at(Duration::from_millis(440), "d");
 
         let tick = ms_to_tick(&t, 600);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -630,8 +589,8 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(100 + TICK * SLOTS as u64), "b").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
+        t.set_timeout_at(Duration::from_millis(100 + TICK * SLOTS as u64), "b");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -651,9 +610,9 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        let a = t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        let _ = t.set_timeout_at(Duration::from_millis(100), "b").unwrap();
-        let _ = t.set_timeout_at(Duration::from_millis(200), "c").unwrap();
+        let a = t.set_timeout_at(Duration::from_millis(100), "a");
+        let _ = t.set_timeout_at(Duration::from_millis(100), "b");
+        let _ = t.set_timeout_at(Duration::from_millis(200), "c");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("b"), t.poll_to(tick));
