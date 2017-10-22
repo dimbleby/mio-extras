@@ -281,7 +281,7 @@ impl<T> Timer<T> {
         // No more timeouts to poll
         if let Some(inner) = self.inner.borrow() {
             trace!("unsetting readiness");
-            let _ = inner.set_readiness.set_readiness(Ready::none());
+            let _ = inner.set_readiness.set_readiness(Ready::empty());
 
             if let Some(tick) = self.next_tick() {
                 self.schedule_readiness(tick);
@@ -372,7 +372,8 @@ impl<T> Evented for Timer<T> {
             return Err(io::Error::new(io::ErrorKind::Other, "timer already registered"));
         }
 
-        let (registration, set_readiness) = Registration::new(poll, token, interest, opts);
+        let (registration, set_readiness) = Registration::new2();
+        poll.register(&registration, token, interest, opts)?;
         let wakeup_state = Arc::new(AtomicUsize::new(usize::MAX));
         let thread_handle = spawn_wakeup_thread(
             wakeup_state.clone(),
@@ -395,14 +396,14 @@ impl<T> Evented for Timer<T> {
 
     fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
         match self.inner.borrow() {
-            Some(inner) => inner.registration.update(poll, token, interest, opts),
+            Some(inner) => poll.reregister(&inner.registration, token, interest, opts),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
 
     fn deregister(&self, poll: &Poll) -> io::Result<()> {
         match self.inner.borrow() {
-            Some(inner) => inner.registration.deregister(poll),
+            Some(inner) => poll.deregister(&inner.registration),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
