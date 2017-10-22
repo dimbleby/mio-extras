@@ -1,8 +1,9 @@
 //! Timer optimized for I/O related operations
 
 use convert;
-use mio::{self, Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
+use mio::{Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
 use lazycell::LazyCell;
+use slab::Slab;
 use std::{cmp, error, fmt, io, u64, usize, iter, thread};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -23,7 +24,7 @@ pub struct Timer<T> {
     // The current tick
     tick: Tick,
     // The next entry to possibly timeout
-    next: Token,
+    next: usize,
     // Masks the target tick to get the slot
     mask: u64,
     // Set on registration with Poll
@@ -42,7 +43,7 @@ pub struct Builder {
 #[derive(Clone, Debug)]
 pub struct Timeout {
     // Reference into the timer entry slab
-    token: Token,
+    token: usize,
     // Tick that it should match up with
     tick: u64,
 }
@@ -57,7 +58,7 @@ struct Inner {
 #[derive(Copy, Clone, Debug)]
 struct WheelEntry {
     next_tick: Tick,
-    head: Token,
+    head: usize,
 }
 
 // Doubly linked list of timer entries. Allows for efficient insertion /
@@ -70,8 +71,8 @@ struct Entry<T> {
 #[derive(Copy, Clone)]
 struct EntryLinks {
     tick: Tick,
-    prev: Token,
-    next: Token
+    prev: usize,
+    next: usize
 }
 
 type Tick = u64;
@@ -80,8 +81,6 @@ const TICK_MAX: Tick = u64::MAX;
 
 // Manages communication with wakeup thread
 type WakeupState = Arc<AtomicUsize>;
-
-type Slab<T> = ::slab::Slab<T, mio::Token>;
 
 pub type Result<T> = ::std::result::Result<T, TimerError>;
 // TODO: remove
@@ -103,7 +102,7 @@ pub enum TimerErrorKind {
 pub type OldTimerResult<T> = Result<T>;
 
 const TERMINATE_THREAD: usize = 0;
-const EMPTY: Token = Token(usize::MAX);
+const EMPTY: usize = usize::MAX;
 
 impl Builder {
     pub fn tick_duration(mut self, duration: Duration) -> Builder {
@@ -179,9 +178,7 @@ impl<T> Timer<T> {
         let curr = self.wheel[slot];
 
         // Insert the new entry
-        let token = try!(
-            self.entries.insert(Entry::new(state, tick, curr.head))
-            .map_err(|_| TimerError::overflow()));
+        let token = self.entries.insert(Entry::new(state, tick, curr.head));
 
         if curr.head != EMPTY {
             // If there was a previous entry, set its prev pointer to the new
@@ -218,7 +215,7 @@ impl<T> Timer<T> {
         }
 
         self.unlink(&links, timeout.token);
-        self.entries.remove(timeout.token).map(|e| e.state)
+        Some(self.entries.remove(timeout.token).state)
     }
 
     pub fn poll(&mut self) -> Option<T> {
@@ -268,8 +265,7 @@ impl<T> Timer<T> {
                     self.unlink(&links, curr);
 
                     // Remove and return the token
-                    return self.entries.remove(curr)
-                        .map(|e| e.state);
+                    return Some(self.entries.remove(curr).state);
                 } else {
                     let next_tick = self.wheel[slot].next_tick;
                     self.wheel[slot].next_tick = cmp::min(next_tick, links.tick);
@@ -291,7 +287,7 @@ impl<T> Timer<T> {
         None
     }
 
-    fn unlink(&mut self, links: &EntryLinks, token: Token) {
+    fn unlink(&mut self, links: &EntryLinks, token: usize) {
        trace!("unlinking timeout; slot={}; token={:?}",
                self.slot_for(links.tick), token);
 
@@ -475,7 +471,7 @@ fn current_tick(start: Instant, tick_ms: u64) -> Tick {
 }
 
 impl<T> Entry<T> {
-    fn new(state: T, tick: u64, next: Token) -> Entry<T> {
+    fn new(state: T, tick: u64, next: usize) -> Entry<T> {
         Entry {
             state: state,
             links: EntryLinks {
@@ -490,15 +486,6 @@ impl<T> Entry<T> {
 impl fmt::Display for TimerError {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         write!(fmt, "{}: {}", self.kind, self.desc)
-    }
-}
-
-impl TimerError {
-    fn overflow() -> TimerError {
-        TimerError {
-            kind: TimerOverflow,
-            desc: "too many timer entries"
-        }
     }
 }
 

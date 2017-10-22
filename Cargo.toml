@@ -20,4 +20,4 @@ exclude       = [
 mio = "0.6"
 log = "0.3.1"
 lazycell = "0.5"
-slab = "0.3.0"
+slab = "0.4"
