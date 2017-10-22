@@ -372,7 +372,7 @@ impl<T> Evented for Timer<T> {
         poll.register(&registration, token, interest, opts)?;
         let wakeup_state = Arc::new(AtomicUsize::new(usize::MAX));
         let thread_handle = spawn_wakeup_thread(
-            wakeup_state.clone(),
+            Arc::clone(&wakeup_state),
             set_readiness.clone(),
             self.start, self.tick_ms);
 
@@ -381,7 +381,7 @@ impl<T> Evented for Timer<T> {
             set_readiness: set_readiness,
             wakeup_state: wakeup_state,
             wakeup_thread: thread_handle,
-        }).ok().expect("timer already registered");
+        }).expect("timer already registered");
 
         if let Some(next_tick) = self.next_tick() {
             self.schedule_readiness(next_tick);
