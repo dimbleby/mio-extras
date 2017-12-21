@@ -1,5 +1,5 @@
-extern crate mio;
 extern crate lazycell;
+extern crate mio;
 extern crate slab;
 
 #[macro_use]
@@ -23,6 +23,9 @@ mod convert {
     pub fn millis(duration: Duration) -> u64 {
         // Round up.
         let millis = (duration.subsec_nanos() + NANOS_PER_MILLI - 1) / NANOS_PER_MILLI;
-        duration.as_secs().saturating_mul(MILLIS_PER_SEC).saturating_add(u64::from(millis))
+        duration
+            .as_secs()
+            .saturating_mul(MILLIS_PER_SEC)
+            .saturating_add(u64::from(millis))
     }
 }

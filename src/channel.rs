@@ -1,9 +1,9 @@
 //! Thread safe communication channel implementing `Evented`
 
-use mio::{Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
-use lazycell::{LazyCell, AtomicLazyCell};
+use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
+use lazycell::{AtomicLazyCell, LazyCell};
 use std::any::Any;
-use std::{io, fmt};
+use std::{fmt, io};
 use std::error;
 use std::sync::{mpsc, Arc};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -113,12 +113,10 @@ struct Inner {
 
 impl<T> Sender<T> {
     pub fn send(&self, t: T) -> Result<(), SendError<T>> {
-        self.tx.send(t)
-            .map_err(SendError::from)
-            .and_then(|_| {
-                try!(self.ctl.inc());
-                Ok(())
-            })
+        self.tx.send(t).map_err(SendError::from).and_then(|_| {
+            try!(self.ctl.inc());
+            Ok(())
+        })
     }
 }
 
@@ -133,21 +131,17 @@ impl<T> Clone for Sender<T> {
 
 impl<T> SyncSender<T> {
     pub fn send(&self, t: T) -> Result<(), SendError<T>> {
-        self.tx.send(t)
-            .map_err(From::from)
-            .and_then(|_| {
-                try!(self.ctl.inc());
-                Ok(())
-            })
+        self.tx.send(t).map_err(From::from).and_then(|_| {
+            try!(self.ctl.inc());
+            Ok(())
+        })
     }
 
     pub fn try_send(&self, t: T) -> Result<(), TrySendError<T>> {
-        self.tx.try_send(t)
-            .map_err(From::from)
-            .and_then(|_| {
-                try!(self.ctl.inc());
-                Ok(())
-            })
+        self.tx.try_send(t).map_err(From::from).and_then(|_| {
+            try!(self.ctl.inc());
+            Ok(())
+        })
     }
 }
 
@@ -170,11 +164,23 @@ impl<T> Receiver<T> {
 }
 
 impl<T> Evented for Receiver<T> {
-    fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
         self.ctl.register(poll, token, interest, opts)
     }
 
-    fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
         self.ctl.reregister(poll, token, interest, opts)
     }
 
@@ -208,7 +214,9 @@ impl SenderCtl {
 impl Clone for SenderCtl {
     fn clone(&self) -> SenderCtl {
         self.inner.senders.fetch_add(1, Ordering::Relaxed);
-        SenderCtl { inner: Arc::clone(&self.inner) }
+        SenderCtl {
+            inner: Arc::clone(&self.inner),
+        }
     }
 }
 
@@ -247,37 +255,62 @@ impl ReceiverCtl {
 }
 
 impl Evented for ReceiverCtl {
-    fn register(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+    fn register(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
         if self.registration.borrow().is_some() {
-            return Err(io::Error::new(io::ErrorKind::Other, "receiver already registered"));
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "receiver already registered",
+            ));
         }
 
         let (registration, set_readiness) = Registration::new2();
         poll.register(&registration, token, interest, opts)?;
-
 
         if self.inner.pending.load(Ordering::Relaxed) > 0 {
             // TODO: Don't drop readiness
             let _ = set_readiness.set_readiness(Ready::readable());
         }
 
-        self.registration.fill(registration).expect("unexpected state encountered");
-        self.inner.set_readiness.fill(set_readiness).expect("unexpected state encountered");
+        self.registration
+            .fill(registration)
+            .expect("unexpected state encountered");
+        self.inner
+            .set_readiness
+            .fill(set_readiness)
+            .expect("unexpected state encountered");
 
         Ok(())
     }
 
-    fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
+    fn reregister(
+        &self,
+        poll: &Poll,
+        token: Token,
+        interest: Ready,
+        opts: PollOpt,
+    ) -> io::Result<()> {
         match self.registration.borrow() {
             Some(registration) => poll.reregister(registration, token, interest, opts),
-            None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
+            None => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "receiver not registered",
+            )),
         }
     }
 
     fn deregister(&self, poll: &Poll) -> io::Result<()> {
         match self.registration.borrow() {
             Some(registration) => poll.deregister(registration),
-            None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
+            None => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "receiver not registered",
+            )),
         }
     }
 }
