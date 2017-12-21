@@ -2,6 +2,10 @@
 
 Extra components for use with [Mio](https://github.com/carllerche/mio).
 
+[![Build Status](https://travis-ci.org/dimbleby/mio-extras.svg?branch=master)](https://travis-ci.org/dimbleby/extras)
+[![crates.io](http://meritbadge.herokuapp.com/mio-extras)](https://crates.io/crates/mio-extras)
+
+
 ## History and maintenance
 
 This repository is forked from [`mio-more`](https://github.com/carllerche/mio-more), which is unmaintained.
