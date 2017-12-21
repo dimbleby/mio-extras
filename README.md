@@ -14,10 +14,6 @@ I don't intend to do very much with this repository apart from keeping it tickin
 
 However if you have some code that you think belongs here, then by all means raise an issue or open a pull request.
 
-## TODO
-
-* Move the tests over from the mio repository
-
 # License
 
 `mio-extras` is primarily distributed under the terms of both the MIT license
