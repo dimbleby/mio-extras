@@ -1,5 +1,4 @@
 //! Timer optimized for I/O related operations
-
 use convert;
 use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use lazycell::LazyCell;
@@ -9,6 +8,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
+/// A timer, whose timeouts are associated with objects of type `T`.
 pub struct Timer<T> {
     // Size of each tick in milliseconds
     tick_ms: u64,
@@ -29,6 +29,7 @@ pub struct Timer<T> {
     inner: LazyCell<Inner>,
 }
 
+/// Used to create a `Timer`.
 pub struct Builder {
     // Approximate duration of each tick
     tick: Duration,
@@ -38,6 +39,8 @@ pub struct Builder {
     capacity: usize,
 }
 
+/// A value returned by `set_timeout`.  Use this as the argument
+/// to `cancel_timeout`, to cancel this timeout.
 #[derive(Clone, Debug)]
 pub struct Timeout {
     // Reference into the timer entry slab
@@ -93,21 +96,25 @@ const TERMINATE_THREAD: usize = 0;
 const EMPTY: usize = usize::MAX;
 
 impl Builder {
+    /// Set the tick duration.  Default is 100ms.
     pub fn tick_duration(mut self, duration: Duration) -> Builder {
         self.tick = duration;
         self
     }
 
+    /// Set the number of slots.  Default is 256.
     pub fn num_slots(mut self, num_slots: usize) -> Builder {
         self.num_slots = num_slots;
         self
     }
 
+    /// Set the capacity.  Default is 65536.
     pub fn capacity(mut self, capacity: usize) -> Builder {
         self.capacity = capacity;
         self
     }
 
+    /// Build a `Timer` with the parameters set on this `Builder`.
     pub fn build<T>(self) -> Timer<T> {
         Timer::new(
             convert::millis(self.tick),
@@ -151,6 +158,7 @@ impl<T> Timer<T> {
         }
     }
 
+    /// Set a timeout.
     pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Timeout {
         let delay_from_start = self.start.elapsed() + delay_from_now;
         self.set_timeout_at(delay_from_start, state)
@@ -204,6 +212,7 @@ impl<T> Timer<T> {
         }
     }
 
+    /// Cancel a timeout.
     pub fn cancel_timeout(&mut self, timeout: &Timeout) -> Option<T> {
         let links = match self.entries.get(timeout.token) {
             Some(e) => e.links,
@@ -219,6 +228,7 @@ impl<T> Timer<T> {
         Some(self.entries.remove(timeout.token).state)
     }
 
+    /// Poll for an expired timer.
     pub fn poll(&mut self) -> Option<T> {
         let target_tick = current_tick(self.start, self.tick_ms);
         self.poll_to(target_tick)

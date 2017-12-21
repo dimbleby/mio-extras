@@ -1,5 +1,4 @@
 //! Thread safe communication channel implementing `Evented`
-
 use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use lazycell::{AtomicLazyCell, LazyCell};
 use std::any::Any;
@@ -46,7 +45,7 @@ pub fn sync_channel<T>(bound: usize) -> (SyncSender<T>, Receiver<T>) {
     (tx, rx)
 }
 
-pub fn ctl_pair() -> (SenderCtl, ReceiverCtl) {
+fn ctl_pair() -> (SenderCtl, ReceiverCtl) {
     let inner = Arc::new(Inner {
         pending: AtomicUsize::new(0),
         senders: AtomicUsize::new(1),
@@ -66,39 +65,52 @@ pub fn ctl_pair() -> (SenderCtl, ReceiverCtl) {
 }
 
 /// Tracks messages sent on a channel in order to update readiness.
-pub struct SenderCtl {
+struct SenderCtl {
     inner: Arc<Inner>,
 }
 
 /// Tracks messages received on a channel in order to track readiness.
-pub struct ReceiverCtl {
+struct ReceiverCtl {
     registration: LazyCell<Registration>,
     inner: Arc<Inner>,
 }
 
+/// The sending half of a channel.
 pub struct Sender<T> {
     tx: mpsc::Sender<T>,
     ctl: SenderCtl,
 }
 
+/// The sending half of a synchronous channel.
 pub struct SyncSender<T> {
     tx: mpsc::SyncSender<T>,
     ctl: SenderCtl,
 }
 
+/// The receiving half of a channel.
 pub struct Receiver<T> {
     rx: mpsc::Receiver<T>,
     ctl: ReceiverCtl,
 }
 
+/// An error returned from the `Sender::send` or `SyncSender::send` function.
 pub enum SendError<T> {
+    /// An IO error.
     Io(io::Error),
+
+    /// The receiving half of the channel has disconnected.
     Disconnected(T),
 }
 
+/// An error returned from the `SyncSender::try_send` function.
 pub enum TrySendError<T> {
+    /// An IO error.
     Io(io::Error),
+
+    /// Data could not be sent because it would require the callee to block.
     Full(T),
+
+    /// The receiving half of the channel has disconnected.
     Disconnected(T),
 }
 
@@ -112,6 +124,7 @@ struct Inner {
 }
 
 impl<T> Sender<T> {
+    /// Attempts to send a value on this channel, returning it back if it could not be sent.
     pub fn send(&self, t: T) -> Result<(), SendError<T>> {
         self.tx.send(t).map_err(SendError::from).and_then(|_| {
             try!(self.ctl.inc());
@@ -130,6 +143,10 @@ impl<T> Clone for Sender<T> {
 }
 
 impl<T> SyncSender<T> {
+    /// Sends a value on this synchronous channel.
+    ///
+    /// This function will *block* until space in the internal buffer becomes
+    /// available or a receiver is available to hand off the message to.
     pub fn send(&self, t: T) -> Result<(), SendError<T>> {
         self.tx.send(t).map_err(From::from).and_then(|_| {
             try!(self.ctl.inc());
@@ -137,6 +154,10 @@ impl<T> SyncSender<T> {
         })
     }
 
+    /// Attempts to send a value on this channel without blocking.
+    ///
+    /// This method differs from `send` by returning immediately if the channel's
+    /// buffer is full or no receiver is waiting to acquire some data.
     pub fn try_send(&self, t: T) -> Result<(), TrySendError<T>> {
         self.tx.try_send(t).map_err(From::from).and_then(|_| {
             try!(self.ctl.inc());
@@ -155,6 +176,7 @@ impl<T> Clone for SyncSender<T> {
 }
 
 impl<T> Receiver<T> {
+    /// Attempts to return a pending value on this receiver without blocking.
     pub fn try_recv(&self) -> Result<T, mpsc::TryRecvError> {
         self.rx.try_recv().and_then(|res| {
             let _ = self.ctl.dec();
@@ -197,7 +219,7 @@ impl<T> Evented for Receiver<T> {
 
 impl SenderCtl {
     /// Call to track that a message has been sent
-    pub fn inc(&self) -> io::Result<()> {
+    fn inc(&self) -> io::Result<()> {
         let cnt = self.inner.pending.fetch_add(1, Ordering::Acquire);
 
         if 0 == cnt {
@@ -229,7 +251,7 @@ impl Drop for SenderCtl {
 }
 
 impl ReceiverCtl {
-    pub fn dec(&self) -> io::Result<()> {
+    fn dec(&self) -> io::Result<()> {
         let first = self.inner.pending.load(Ordering::Acquire);
 
         if first == 1 {
