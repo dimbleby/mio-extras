@@ -54,7 +54,7 @@ pub fn ctl_pair() -> (SenderCtl, ReceiverCtl) {
     });
 
     let tx = SenderCtl {
-        inner: inner.clone(),
+        inner: Arc::clone(&inner),
     };
 
     let rx = ReceiverCtl {
@@ -208,7 +208,7 @@ impl SenderCtl {
 impl Clone for SenderCtl {
     fn clone(&self) -> SenderCtl {
         self.inner.senders.fetch_add(1, Ordering::Relaxed);
-        SenderCtl { inner: self.inner.clone() }
+        SenderCtl { inner: Arc::clone(&self.inner) }
     }
 }
 
@@ -227,7 +227,7 @@ impl ReceiverCtl {
         if first == 1 {
             // Unset readiness
             if let Some(set_readiness) = self.inner.set_readiness.borrow() {
-                try!(set_readiness.set_readiness(Ready::none()));
+                try!(set_readiness.set_readiness(Ready::empty()));
             }
         }
 
@@ -252,7 +252,8 @@ impl Evented for ReceiverCtl {
             return Err(io::Error::new(io::ErrorKind::Other, "receiver already registered"));
         }
 
-        let (registration, set_readiness) = Registration::new(poll, token, interest, opts);
+        let (registration, set_readiness) = Registration::new2();
+        poll.register(&registration, token, interest, opts)?;
 
 
         if self.inner.pending.load(Ordering::Relaxed) > 0 {
@@ -260,22 +261,22 @@ impl Evented for ReceiverCtl {
             let _ = set_readiness.set_readiness(Ready::readable());
         }
 
-        self.registration.fill(registration).ok().expect("unexpected state encountered");
-        self.inner.set_readiness.fill(set_readiness).ok().expect("unexpected state encountered");
+        self.registration.fill(registration).expect("unexpected state encountered");
+        self.inner.set_readiness.fill(set_readiness).expect("unexpected state encountered");
 
         Ok(())
     }
 
     fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
         match self.registration.borrow() {
-            Some(registration) => registration.update(poll, token, interest, opts),
+            Some(registration) => poll.reregister(registration, token, interest, opts),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
 
     fn deregister(&self, poll: &Poll) -> io::Result<()> {
         match self.registration.borrow() {
-            Some(registration) => registration.deregister(poll),
+            Some(registration) => poll.deregister(registration),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
@@ -328,19 +329,19 @@ impl<T> From<io::Error> for TrySendError<T> {
 
 impl<T: Any> error::Error for SendError<T> {
     fn description(&self) -> &str {
-        match self {
-            &SendError::Io(ref io_err) => io_err.description(),
-            &SendError::Disconnected(..) => "Disconnected",
+        match *self {
+            SendError::Io(ref io_err) => io_err.description(),
+            SendError::Disconnected(..) => "Disconnected",
         }
     }
 }
 
 impl<T: Any> error::Error for TrySendError<T> {
     fn description(&self) -> &str {
-        match self {
-            &TrySendError::Io(ref io_err) => io_err.description(),
-            &TrySendError::Full(..) => "Full",
-            &TrySendError::Disconnected(..) => "Disconnected",
+        match *self {
+            TrySendError::Io(ref io_err) => io_err.description(),
+            TrySendError::Full(..) => "Full",
+            TrySendError::Disconnected(..) => "Disconnected",
         }
     }
 }
@@ -371,17 +372,17 @@ impl<T> fmt::Display for TrySendError<T> {
 
 #[inline]
 fn format_send_error<T>(e: &SendError<T>, f: &mut fmt::Formatter) -> fmt::Result {
-    match e {
-        &SendError::Io(ref io_err) => write!(f, "{}", io_err),
-        &SendError::Disconnected(..) => write!(f, "Disconnected"),
+    match *e {
+        SendError::Io(ref io_err) => write!(f, "{}", io_err),
+        SendError::Disconnected(..) => write!(f, "Disconnected"),
     }
 }
 
 #[inline]
 fn format_try_send_error<T>(e: &TrySendError<T>, f: &mut fmt::Formatter) -> fmt::Result {
-    match e {
-        &TrySendError::Io(ref io_err) => write!(f, "{}", io_err),
-        &TrySendError::Full(..) => write!(f, "Full"),
-        &TrySendError::Disconnected(..) => write!(f, "Disconnected"),
+    match *e {
+        TrySendError::Io(ref io_err) => write!(f, "{}", io_err),
+        TrySendError::Full(..) => write!(f, "Full"),
+        TrySendError::Disconnected(..) => write!(f, "Disconnected"),
     }
 }

@@ -1,14 +1,13 @@
 //! Timer optimized for I/O related operations
 
 use convert;
-use mio::{self, Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
+use mio::{Evented, Ready, Poll, PollOpt, Registration, SetReadiness, Token};
 use lazycell::LazyCell;
-use std::{cmp, error, fmt, io, u64, usize, iter, thread};
+use slab::Slab;
+use std::{cmp, fmt, io, u64, usize, iter, thread};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
-
-use self::TimerErrorKind::TimerOverflow;
 
 pub struct Timer<T> {
     // Size of each tick in milliseconds
@@ -23,7 +22,7 @@ pub struct Timer<T> {
     // The current tick
     tick: Tick,
     // The next entry to possibly timeout
-    next: Token,
+    next: usize,
     // Masks the target tick to get the slot
     mask: u64,
     // Set on registration with Poll
@@ -42,7 +41,7 @@ pub struct Builder {
 #[derive(Clone, Debug)]
 pub struct Timeout {
     // Reference into the timer entry slab
-    token: Token,
+    token: usize,
     // Tick that it should match up with
     tick: u64,
 }
@@ -66,7 +65,7 @@ impl Drop for Inner {
 #[derive(Copy, Clone, Debug)]
 struct WheelEntry {
     next_tick: Tick,
-    head: Token,
+    head: usize,
 }
 
 // Doubly linked list of timer entries. Allows for efficient insertion /
@@ -79,8 +78,8 @@ struct Entry<T> {
 #[derive(Copy, Clone)]
 struct EntryLinks {
     tick: Tick,
-    prev: Token,
-    next: Token
+    prev: usize,
+    next: usize
 }
 
 type Tick = u64;
@@ -90,29 +89,8 @@ const TICK_MAX: Tick = u64::MAX;
 // Manages communication with wakeup thread
 type WakeupState = Arc<AtomicUsize>;
 
-type Slab<T> = ::slab::Slab<T, mio::Token>;
-
-pub type Result<T> = ::std::result::Result<T, TimerError>;
-// TODO: remove
-pub type TimerResult<T> = Result<T>;
-
-
-#[derive(Debug)]
-pub struct TimerError {
-    kind: TimerErrorKind,
-    desc: &'static str,
-}
-
-#[derive(Debug)]
-pub enum TimerErrorKind {
-    TimerOverflow,
-}
-
-// TODO: Remove
-pub type OldTimerResult<T> = Result<T>;
-
 const TERMINATE_THREAD: usize = 0;
-const EMPTY: Token = Token(usize::MAX);
+const EMPTY: usize = usize::MAX;
 
 impl Builder {
     pub fn tick_duration(mut self, duration: Duration) -> Builder {
@@ -165,12 +143,12 @@ impl<T> Timer<T> {
         }
     }
 
-    pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Result<Timeout> {
+    pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Timeout {
         let delay_from_start = self.start.elapsed() + delay_from_now;
         self.set_timeout_at(delay_from_start, state)
     }
 
-    fn set_timeout_at(&mut self, delay_from_start: Duration, state: T) -> Result<Timeout> {
+    fn set_timeout_at(&mut self, delay_from_start: Duration, state: T) -> Timeout {
         let mut tick = duration_to_tick(delay_from_start, self.tick_ms);
         trace!("setting timeout; delay={:?}; tick={:?}; current-tick={:?}", delay_from_start, tick, self.tick);
 
@@ -182,15 +160,13 @@ impl<T> Timer<T> {
         self.insert(tick, state)
     }
 
-    fn insert(&mut self, tick: Tick, state: T) -> Result<Timeout> {
+    fn insert(&mut self, tick: Tick, state: T) -> Timeout {
         // Get the slot for the requested tick
         let slot = (tick & self.mask) as usize;
         let curr = self.wheel[slot];
 
         // Insert the new entry
-        let token = try!(
-            self.entries.insert(Entry::new(state, tick, curr.head))
-            .map_err(|_| TimerError::overflow()));
+        let token = self.entries.insert(Entry::new(state, tick, curr.head));
 
         if curr.head != EMPTY {
             // If there was a previous entry, set its prev pointer to the new
@@ -209,10 +185,10 @@ impl<T> Timer<T> {
         trace!("inserted timout; slot={}; token={:?}", slot, token);
 
         // Return the new timeout
-        Ok(Timeout {
+        Timeout {
             token: token,
             tick: tick
-        })
+        }
     }
 
     pub fn cancel_timeout(&mut self, timeout: &Timeout) -> Option<T> {
@@ -227,7 +203,7 @@ impl<T> Timer<T> {
         }
 
         self.unlink(&links, timeout.token);
-        self.entries.remove(timeout.token).map(|e| e.state)
+        Some(self.entries.remove(timeout.token).state)
     }
 
     pub fn poll(&mut self) -> Option<T> {
@@ -277,8 +253,7 @@ impl<T> Timer<T> {
                     self.unlink(&links, curr);
 
                     // Remove and return the token
-                    return self.entries.remove(curr)
-                        .map(|e| e.state);
+                    return Some(self.entries.remove(curr).state);
                 } else {
                     let next_tick = self.wheel[slot].next_tick;
                     self.wheel[slot].next_tick = cmp::min(next_tick, links.tick);
@@ -290,7 +265,7 @@ impl<T> Timer<T> {
         // No more timeouts to poll
         if let Some(inner) = self.inner.borrow() {
             trace!("unsetting readiness");
-            let _ = inner.set_readiness.set_readiness(Ready::none());
+            let _ = inner.set_readiness.set_readiness(Ready::empty());
 
             if let Some(tick) = self.next_tick() {
                 self.schedule_readiness(tick);
@@ -300,7 +275,7 @@ impl<T> Timer<T> {
         None
     }
 
-    fn unlink(&mut self, links: &EntryLinks, token: Token) {
+    fn unlink(&mut self, links: &EntryLinks, token: usize) {
        trace!("unlinking timeout; slot={}; token={:?}",
                self.slot_for(links.tick), token);
 
@@ -381,10 +356,11 @@ impl<T> Evented for Timer<T> {
             return Err(io::Error::new(io::ErrorKind::Other, "timer already registered"));
         }
 
-        let (registration, set_readiness) = Registration::new(poll, token, interest, opts);
+        let (registration, set_readiness) = Registration::new2();
+        poll.register(&registration, token, interest, opts)?;
         let wakeup_state = Arc::new(AtomicUsize::new(usize::MAX));
         let thread_handle = spawn_wakeup_thread(
-            wakeup_state.clone(),
+            Arc::clone(&wakeup_state),
             set_readiness.clone(),
             self.start, self.tick_ms);
 
@@ -393,7 +369,7 @@ impl<T> Evented for Timer<T> {
             set_readiness: set_readiness,
             wakeup_state: wakeup_state,
             wakeup_thread: thread_handle,
-        }).ok().expect("timer already registered");
+        }).expect("timer already registered");
 
         if let Some(next_tick) = self.next_tick() {
             self.schedule_readiness(next_tick);
@@ -404,14 +380,14 @@ impl<T> Evented for Timer<T> {
 
     fn reregister(&self, poll: &Poll, token: Token, interest: Ready, opts: PollOpt) -> io::Result<()> {
         match self.inner.borrow() {
-            Some(inner) => inner.registration.update(poll, token, interest, opts),
+            Some(inner) => poll.reregister(&inner.registration, token, interest, opts),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
 
     fn deregister(&self, poll: &Poll) -> io::Result<()> {
         match self.inner.borrow() {
-            Some(inner) => inner.registration.deregister(poll),
+            Some(inner) => poll.deregister(&inner.registration),
             None => Err(io::Error::new(io::ErrorKind::Other, "receiver not registered")),
         }
     }
@@ -483,7 +459,7 @@ fn current_tick(start: Instant, tick_ms: u64) -> Tick {
 }
 
 impl<T> Entry<T> {
-    fn new(state: T, tick: u64, next: Token) -> Entry<T> {
+    fn new(state: T, tick: u64, next: usize) -> Entry<T> {
         Entry {
             state: state,
             links: EntryLinks {
@@ -491,35 +467,6 @@ impl<T> Entry<T> {
                 prev: EMPTY,
                 next: next,
             },
-        }
-    }
-}
-
-impl fmt::Display for TimerError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}: {}", self.kind, self.desc)
-    }
-}
-
-impl TimerError {
-    fn overflow() -> TimerError {
-        TimerError {
-            kind: TimerOverflow,
-            desc: "too many timer entries"
-        }
-    }
-}
-
-impl error::Error for TimerError {
-    fn description(&self) -> &str {
-        self.desc
-    }
-}
-
-impl fmt::Display for TimerErrorKind {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            TimerOverflow => write!(fmt, "TimerOverflow"),
         }
     }
 }
@@ -534,7 +481,7 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
 
         tick = ms_to_tick(&t, 50);
         assert_eq!(None, t.poll_to(tick));
@@ -557,7 +504,7 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        let to = t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
+        let to = t.set_timeout_at(Duration::from_millis(100), "a");
         assert_eq!("a", t.cancel_timeout(&to).unwrap());
 
         tick = ms_to_tick(&t, 100);
@@ -574,8 +521,8 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(100), "b").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
+        t.set_timeout_at(Duration::from_millis(100), "b");
 
         let mut rcv = vec![];
 
@@ -599,11 +546,11 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(110), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(220), "b").unwrap();
-        t.set_timeout_at(Duration::from_millis(230), "c").unwrap();
-        t.set_timeout_at(Duration::from_millis(440), "d").unwrap();
-        t.set_timeout_at(Duration::from_millis(560), "e").unwrap();
+        t.set_timeout_at(Duration::from_millis(110), "a");
+        t.set_timeout_at(Duration::from_millis(220), "b");
+        t.set_timeout_at(Duration::from_millis(230), "c");
+        t.set_timeout_at(Duration::from_millis(440), "d");
+        t.set_timeout_at(Duration::from_millis(560), "e");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -633,10 +580,10 @@ mod test {
     pub fn test_catching_up() {
         let mut t = timer();
 
-        t.set_timeout_at(Duration::from_millis(110), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(220), "b").unwrap();
-        t.set_timeout_at(Duration::from_millis(230), "c").unwrap();
-        t.set_timeout_at(Duration::from_millis(440), "d").unwrap();
+        t.set_timeout_at(Duration::from_millis(110), "a");
+        t.set_timeout_at(Duration::from_millis(220), "b");
+        t.set_timeout_at(Duration::from_millis(230), "c");
+        t.set_timeout_at(Duration::from_millis(440), "d");
 
         let tick = ms_to_tick(&t, 600);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -651,8 +598,8 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        t.set_timeout_at(Duration::from_millis(100 + TICK * SLOTS as u64), "b").unwrap();
+        t.set_timeout_at(Duration::from_millis(100), "a");
+        t.set_timeout_at(Duration::from_millis(100 + TICK * SLOTS as u64), "b");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("a"), t.poll_to(tick));
@@ -672,9 +619,9 @@ mod test {
         let mut t = timer();
         let mut tick;
 
-        let a = t.set_timeout_at(Duration::from_millis(100), "a").unwrap();
-        let _ = t.set_timeout_at(Duration::from_millis(100), "b").unwrap();
-        let _ = t.set_timeout_at(Duration::from_millis(200), "c").unwrap();
+        let a = t.set_timeout_at(Duration::from_millis(100), "a");
+        let _ = t.set_timeout_at(Duration::from_millis(100), "b");
+        let _ = t.set_timeout_at(Duration::from_millis(200), "c");
 
         tick = ms_to_tick(&t, 100);
         assert_eq!(Some("b"), t.poll_to(tick));
