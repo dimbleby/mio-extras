@@ -1,5 +1,4 @@
 [package]
-
 name          = "mio-extras"
 version       = "1.0.0"
 license       = "MIT"
