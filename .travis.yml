@@ -1,0 +1,18 @@
+language: rust
+cache: cargo
+sudo: false
+os:
+- linux
+- osx
+rust:
+- nightly
+- beta
+- stable
+script:
+- cargo test
+branches:
+  only:
+    master
+matrix:
+  allow_failures:
+    - rust: nightly
