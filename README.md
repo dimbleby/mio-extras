@@ -5,6 +5,8 @@ Extra components for use with [Mio](https://github.com/carllerche/mio).
 [![Build Status](https://travis-ci.org/dimbleby/mio-extras.svg?branch=master)](https://travis-ci.org/dimbleby/mio-extras)
 [![crates.io](http://meritbadge.herokuapp.com/mio-extras)](https://crates.io/crates/mio-extras)
 
+[Documentation](https://docs.rs/mio-extras).
+
 
 ## History and maintenance
 
