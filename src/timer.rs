@@ -51,8 +51,9 @@ pub struct Builder {
     capacity: usize,
 }
 
-/// A timeout, as returned by `set_timeout`.  Use this as the argument
-/// to `cancel_timeout`, to cancel this timeout.
+/// A timeout, as returned by `set_timeout`.
+///
+/// Use this as the argument to `cancel_timeout`, to cancel this timeout.
 #[derive(Clone, Debug)]
 pub struct Timeout {
     // Reference into the timer entry slab
@@ -171,6 +172,8 @@ impl<T> Timer<T> {
     }
 
     /// Set a timeout.
+    ///
+    /// When the timeout occurs, the given state becomes available via `poll`.
     pub fn set_timeout(&mut self, delay_from_now: Duration, state: T) -> Timeout {
         let delay_from_start = self.start.elapsed() + delay_from_now;
         self.set_timeout_at(delay_from_start, state)

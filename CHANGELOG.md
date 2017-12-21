@@ -1,3 +1,7 @@
+## 2.0.2
+
+* More docs tidying.
+
 ## 2.0.1
 
 * Another try at documenting the timer interface.
