@@ -8,7 +8,19 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
-/// A timer, whose timeouts are associated with objects of type `T`.
+/// A timer.
+///
+/// Typical usage goes like this:
+///
+/// * register the timer with a `mio::Poll`.
+/// * set a timeout, by calling `set_timeout`.  Here you provide some state to
+///   be associated with this timeout.
+/// * poll the `Poll`, to learn when a timeout has occurred.
+/// * retrieve state associated with the timeout by calling `poll` on the
+///   `Timer`.
+///
+/// You can omit use of the `Poll` altogether, if you like, and just poll the
+/// `Timer` directly.
 pub struct Timer<T> {
     // Size of each tick in milliseconds
     tick_ms: u64,
@@ -39,7 +51,7 @@ pub struct Builder {
     capacity: usize,
 }
 
-/// A value returned by `set_timeout`.  Use this as the argument
+/// A timeout, as returned by `set_timeout`.  Use this as the argument
 /// to `cancel_timeout`, to cancel this timeout.
 #[derive(Clone, Debug)]
 pub struct Timeout {
@@ -213,6 +225,9 @@ impl<T> Timer<T> {
     }
 
     /// Cancel a timeout.
+    ///
+    /// If the timeout has not yet occurred, the return value holds the
+    /// associated state.
     pub fn cancel_timeout(&mut self, timeout: &Timeout) -> Option<T> {
         let links = match self.entries.get(timeout.token) {
             Some(e) => e.links,
@@ -229,6 +244,9 @@ impl<T> Timer<T> {
     }
 
     /// Poll for an expired timer.
+    ///
+    /// The return value holds the state associated with the first expired
+    /// timer, if any.
     pub fn poll(&mut self) -> Option<T> {
         let target_tick = current_tick(self.start, self.tick_ms);
         self.poll_to(target_tick)

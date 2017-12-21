@@ -1,3 +1,7 @@
+## 2.0.1
+
+* Another try at documenting the timer interface.
+
 ## 2.0.0
 
 * Remove channel implementation details from the API.  Specifically, the following are no longer public:
