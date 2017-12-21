@@ -111,7 +111,7 @@ fn test_timer_with_looping_wheel() {
 
     poll.register(&timer, Token(0), Ready::readable(), PollOpt::edge()).unwrap();
 
-    const TOKENS: &'static [ &'static str ] = &[ "hello", "world", "some", "thing" ];
+    const TOKENS: &[ &str ] = &[ "hello", "world", "some", "thing" ];
 
     for (i, msg) in TOKENS.iter().enumerate() {
         timer.set_timeout(Duration::from_millis(500 * (i as u64 + 1)), msg);
@@ -265,7 +265,7 @@ fn elapsed<F: FnMut()>(mut f: F) -> u64 {
     f();
 
     let elapsed = now.elapsed();
-    elapsed.as_secs() * 1000 + (elapsed.subsec_nanos() / 1_000_000) as u64
+    elapsed.as_secs() * 1000 + u64::from(elapsed.subsec_nanos() / 1_000_000)
 }
 
 fn is_about(expect: u64, val: u64) -> bool {
