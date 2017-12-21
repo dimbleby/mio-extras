@@ -1,20 +1,16 @@
 [package]
 
-name          = "mio-more"
-version       = "0.1.0"
+name          = "mio-extras"
+version       = "1.0.0"
 license       = "MIT"
-authors       = ["Carl Lerche <me@carllerche.com>"]
+authors       = ["Carl Lerche <me@carllerche.com>", "David Hotham"]
 description   = "Extra components for use with Mio"
-documentation = "https://docs.rs/mio-more"
-homepage      = "https://github.com/carllerche/mio-more"
-repository    = "https://github.com/carllerche/mio-more"
+documentation = "https://docs.rs/mio-extras"
+repository    = "https://github.com/dimbleby/mio-extras"
 readme        = "README.md"
 keywords      = ["io", "async", "non-blocking"]
 categories    = ["asynchronous"]
-exclude       = [
-  ".gitignore",
-  ".travis.yml",
-]
+exclude       = [".gitignore"]
 
 [dependencies]
 mio = "0.6"

@@ -1,11 +1,14 @@
-# Mio More
+# mio-extras
 
-Extra components for use with Mio.
+Extra components for use with [Mio](https://github.com/carllerche/mio).
 
-## Maintenance status
+## History and maintenance
 
-This repository is not actively maintained. It is mostly a dumping ground of
-code that was deprecated in the Mio crate.
+This repository is forked from [`mio-more`](https://github.com/carllerche/mio-more), which is unmaintained.
+
+I don't intend to do very much with this repository apart from keeping it ticking over - bug fixes, updating dependencies, and suchlike.
+
+However if you have some code that you think belongs here, then by all means raise an issue or open a pull request.
 
 ## TODO
 
@@ -13,7 +16,7 @@ code that was deprecated in the Mio crate.
 
 # License
 
-`tokio-more` is primarily distributed under the terms of both the MIT license
+`mio-extras` is primarily distributed under the terms of both the MIT license
 and the Apache License (Version 2.0), with portions covered by various BSD-like
 licenses.
 
