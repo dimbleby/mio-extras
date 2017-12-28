@@ -1,3 +1,7 @@
+## 2.0.3 (28 Dec 2017)
+
+* update `log` from 0.3 -> 0.4
+
 ## 2.0.2
 
 * More docs tidying.

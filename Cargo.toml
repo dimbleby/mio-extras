@@ -1,6 +1,6 @@
 [package]
 name          = "mio-extras"
-version       = "2.0.2"
+version       = "2.0.3"
 license       = "MIT"
 authors       = ["Carl Lerche <me@carllerche.com>", "David Hotham"]
 description   = "Extra components for use with Mio"
