@@ -13,11 +13,10 @@ use std::time::{Duration, Instant};
 /// Typical usage goes like this:
 ///
 /// * register the timer with a `mio::Poll`.
-/// * set a timeout, by calling `set_timeout`.  Here you provide some state to
-///   be associated with this timeout.
+/// * set a timeout, by calling `Timer::set_timeout`.  Here you provide some
+///   state to be associated with this timeout.
 /// * poll the `Poll`, to learn when a timeout has occurred.
-/// * retrieve state associated with the timeout by calling `poll` on the
-///   `Timer`.
+/// * retrieve state associated with the timeout by calling `Timer::poll`.
 ///
 /// You can omit use of the `Poll` altogether, if you like, and just poll the
 /// `Timer` directly.
@@ -51,9 +50,9 @@ pub struct Builder {
     capacity: usize,
 }
 
-/// A timeout, as returned by `set_timeout`.
+/// A timeout, as returned by `Timer::set_timeout`.
 ///
-/// Use this as the argument to `cancel_timeout`, to cancel this timeout.
+/// Use this as the argument to `Timer::cancel_timeout`, to cancel this timeout.
 #[derive(Clone, Debug)]
 pub struct Timeout {
     // Reference into the timer entry slab
