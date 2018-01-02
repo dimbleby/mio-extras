@@ -1,6 +1,9 @@
 # mio-extras
 
-Extra components for use with [Mio](https://github.com/carllerche/mio).
+Extra components for use with [Mio](https://github.com/carllerche/mio):
+
+* a channel that implements `Evented`
+* a timer that implements `Evented`
 
 [![Build Status](https://travis-ci.org/dimbleby/mio-extras.svg?branch=master)](https://travis-ci.org/dimbleby/mio-extras)
 [![crates.io](http://meritbadge.herokuapp.com/mio-extras)](https://crates.io/crates/mio-extras)
