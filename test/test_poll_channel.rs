@@ -28,7 +28,7 @@ pub fn test_poll_channel_edge() {
         .unwrap();
     assert_eq!(1, num);
 
-    let event = events.get(0).unwrap();
+    let event = events.iter().next().unwrap();
     assert_eq!(event.token(), Token(123));
     assert_eq!(event.readiness(), Ready::readable());
 
@@ -53,7 +53,7 @@ pub fn test_poll_channel_edge() {
         .unwrap();
     assert_eq!(1, num);
 
-    let event = events.get(0).unwrap();
+    let event = events.iter().next().unwrap();
     assert_eq!(event.token(), Token(123));
     assert_eq!(event.readiness(), Ready::readable());
 
@@ -67,7 +67,7 @@ pub fn test_poll_channel_edge() {
         .unwrap();
     assert_eq!(1, num);
 
-    let event = events.get(0).unwrap();
+    let event = events.iter().next().unwrap();
     assert_eq!(event.token(), Token(123));
     assert_eq!(event.readiness(), Ready::readable());
 
@@ -103,7 +103,7 @@ pub fn test_poll_channel_oneshot() {
         .unwrap();
     assert_eq!(1, num);
 
-    let event = events.get(0).unwrap();
+    let event = events.iter().next().unwrap();
     assert_eq!(event.token(), Token(123));
     assert_eq!(event.readiness(), Ready::readable());
 
@@ -142,7 +142,7 @@ pub fn test_poll_channel_oneshot() {
             .unwrap();
         assert_eq!(1, num);
 
-        let event = events.get(0).unwrap();
+        let event = events.iter().next().unwrap();
         assert_eq!(event.token(), Token(123));
         assert_eq!(event.readiness(), Ready::readable());
     }
@@ -198,7 +198,7 @@ pub fn test_poll_channel_level() {
             .unwrap();
         assert!(1 == num, "actually got {} on iteration {}", num, i);
 
-        let event = events.get(0).unwrap();
+        let event = events.iter().next().unwrap();
         assert_eq!(event.token(), Token(123));
         assert_eq!(event.readiness(), Ready::readable());
     }
@@ -327,7 +327,7 @@ pub fn test_sending_from_other_thread_while_polling() {
 
             if num != 0 {
                 assert_eq!(1, num);
-                assert_eq!(events.get(0).unwrap().token(), Token(0));
+                assert_eq!(events.iter().next().unwrap().token(), Token(0));
 
                 while let Ok(_) = rx.try_recv() {
                     recv += 1;

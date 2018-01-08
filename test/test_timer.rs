@@ -35,8 +35,9 @@ fn test_basic_timer_with_poll_edge_set_timeout_after_register() {
         let num = poll.poll(&mut events, None).unwrap();
 
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(200, elapsed), "actual={:?}", elapsed);
@@ -58,8 +59,9 @@ fn test_basic_timer_with_poll_edge_set_timeout_before_register() {
         let num = poll.poll(&mut events, None).unwrap();
 
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(200, elapsed), "actual={:?}", elapsed);
@@ -83,8 +85,9 @@ fn test_setting_later_timeout_then_earlier_one() {
         let num = poll.poll(&mut events, None).unwrap();
 
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(200, elapsed), "actual={:?}", elapsed);
@@ -95,8 +98,9 @@ fn test_setting_later_timeout_then_earlier_one() {
         let num = poll.poll(&mut events, None).unwrap();
 
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(400, elapsed), "actual={:?}", elapsed);
@@ -124,8 +128,9 @@ fn test_timer_with_looping_wheel() {
             let num = poll.poll(&mut events, None).unwrap();
 
             assert_eq!(num, 1);
-            assert_eq!(Token(0), events.get(0).unwrap().token());
-            assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+            let event = events.iter().next().unwrap();
+            assert_eq!(Token(0), event.token());
+            assert_eq!(Ready::readable(), event.readiness());
         });
 
         assert!(
@@ -153,8 +158,9 @@ fn test_edge_without_polling() {
     let ms = elapsed(|| {
         let num = poll.poll(&mut events, None).unwrap();
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(400, ms), "actual={:?}", ms);
@@ -182,8 +188,9 @@ fn test_level_triggered() {
     let ms = elapsed(|| {
         let num = poll.poll(&mut events, None).unwrap();
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(400, ms), "actual={:?}", ms);
@@ -191,8 +198,9 @@ fn test_level_triggered() {
     let ms = elapsed(|| {
         let num = poll.poll(&mut events, None).unwrap();
         assert_eq!(num, 1);
-        assert_eq!(Token(0), events.get(0).unwrap().token());
-        assert_eq!(Ready::readable(), events.get(0).unwrap().readiness());
+        let event = events.iter().next().unwrap();
+        assert_eq!(Token(0), event.token());
+        assert_eq!(Ready::readable(), event.readiness());
     });
 
     assert!(is_about(0, ms), "actual={:?}", ms);
