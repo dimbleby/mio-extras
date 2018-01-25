@@ -141,8 +141,8 @@ impl Default for Builder {
     fn default() -> Builder {
         Builder {
             tick: Duration::from_millis(100),
-            num_slots: 256,
-            capacity: 65_536,
+            num_slots: 1 << 8,
+            capacity: 1 << 16,
         }
     }
 }
