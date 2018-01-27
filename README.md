@@ -15,7 +15,7 @@ Extra components for use with [Mio](https://github.com/carllerche/mio):
 
 This repository is forked from [`mio-more`](https://github.com/carllerche/mio-more), which is unmaintained.
 
-I don't intend to do very much with this repository apart from keeping it ticking over - bug fixes, updating dependencies, and suchlike.
+I don't intend to do very much with this except for routine maintenance - bug fixes, updating dependencies, and suchlike.
 
 However if you have some code that you think belongs here, then by all means raise an issue or open a pull request.
 
