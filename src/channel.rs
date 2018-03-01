@@ -14,12 +14,12 @@ pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::channel();
 
     let tx = Sender {
-        tx: tx,
+        tx,
         ctl: tx_ctl,
     };
 
     let rx = Receiver {
-        rx: rx,
+        rx,
         ctl: rx_ctl,
     };
 
@@ -33,12 +33,12 @@ pub fn sync_channel<T>(bound: usize) -> (SyncSender<T>, Receiver<T>) {
     let (tx, rx) = mpsc::sync_channel(bound);
 
     let tx = SyncSender {
-        tx: tx,
+        tx,
         ctl: tx_ctl,
     };
 
     let rx = Receiver {
-        rx: rx,
+        rx,
         ctl: rx_ctl,
     };
 
@@ -58,7 +58,7 @@ fn ctl_pair() -> (SenderCtl, ReceiverCtl) {
 
     let rx = ReceiverCtl {
         registration: LazyCell::new(),
-        inner: inner,
+        inner,
     };
 
     (tx, rx)
