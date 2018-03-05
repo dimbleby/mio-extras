@@ -221,10 +221,7 @@ impl<T> Timer<T> {
         trace!("inserted timout; slot={}; token={:?}", slot, token);
 
         // Return the new timeout
-        Timeout {
-            token,
-            tick,
-        }
+        Timeout { token, tick }
     }
 
     /// Cancel a timeout.

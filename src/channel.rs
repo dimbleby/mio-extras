@@ -13,15 +13,9 @@ pub fn channel<T>() -> (Sender<T>, Receiver<T>) {
     let (tx_ctl, rx_ctl) = ctl_pair();
     let (tx, rx) = mpsc::channel();
 
-    let tx = Sender {
-        tx,
-        ctl: tx_ctl,
-    };
+    let tx = Sender { tx, ctl: tx_ctl };
 
-    let rx = Receiver {
-        rx,
-        ctl: rx_ctl,
-    };
+    let rx = Receiver { rx, ctl: rx_ctl };
 
     (tx, rx)
 }
@@ -32,15 +26,9 @@ pub fn sync_channel<T>(bound: usize) -> (SyncSender<T>, Receiver<T>) {
     let (tx_ctl, rx_ctl) = ctl_pair();
     let (tx, rx) = mpsc::sync_channel(bound);
 
-    let tx = SyncSender {
-        tx,
-        ctl: tx_ctl,
-    };
+    let tx = SyncSender { tx, ctl: tx_ctl };
 
-    let rx = Receiver {
-        rx,
-        ctl: rx_ctl,
-    };
+    let rx = Receiver { rx, ctl: rx_ctl };
 
     (tx, rx)
 }
