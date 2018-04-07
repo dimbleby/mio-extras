@@ -1,3 +1,7 @@
+## 2.0.4 (7 Apr 2017)
+
+* Bump mio dependency (fixes minimal-versions build)
+
 ## 2.0.3 (28 Dec 2017)
 
 * update `log` from 0.3 -> 0.4
