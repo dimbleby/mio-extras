@@ -1,4 +1,4 @@
-## 2.0.4 (7 Apr 2017)
+## 2.0.4 (7 Apr 2018)
 
 * Bump mio dependency (fixes minimal-versions build)
 
