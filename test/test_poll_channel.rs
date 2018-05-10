@@ -1,7 +1,7 @@
 use expect_events;
-use mio_extras::channel;
-use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio::event::Event;
+use mio::{Events, Poll, PollOpt, Ready, Token};
+use mio_extras::channel;
 use std::sync::mpsc::TryRecvError;
 use std::thread;
 use std::time::Duration;

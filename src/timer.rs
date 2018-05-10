@@ -1,12 +1,12 @@
 //! Timer optimized for I/O related operations
 use convert;
-use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use lazycell::LazyCell;
+use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use slab::Slab;
-use std::{cmp, fmt, io, iter, thread, usize, u64};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
+use std::{cmp, fmt, io, iter, thread, usize, u64};
 
 /// A timer.
 ///

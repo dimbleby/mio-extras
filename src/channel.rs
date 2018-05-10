@@ -1,11 +1,11 @@
 //! Thread safe communication channel implementing `Evented`
-use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use lazycell::{AtomicLazyCell, LazyCell};
+use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use std::any::Any;
-use std::{fmt, io};
 use std::error;
-use std::sync::{mpsc, Arc};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc};
+use std::{fmt, io};
 
 /// Creates a new asynchronous channel, where the `Receiver` can be registered
 /// with `Poll`.

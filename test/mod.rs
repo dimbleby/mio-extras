@@ -1,8 +1,8 @@
 extern crate mio;
 extern crate mio_extras;
 
-use mio::{Events, Poll};
 use mio::event::Event;
+use mio::{Events, Poll};
 use std::time::Duration;
 
 mod test_poll_channel;
