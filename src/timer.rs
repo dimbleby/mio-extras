@@ -3,10 +3,10 @@ use convert;
 use lazycell::LazyCell;
 use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use slab::Slab;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
-use std::{cmp, fmt, io, iter, thread, usize, u64};
+use std::{cmp, fmt, io, iter, thread, u64, usize};
 
 /// A timer.
 ///
