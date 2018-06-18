@@ -14,7 +14,7 @@ exclude       = [".gitignore"]
 [dependencies]
 mio = "0.6.14"
 log = "0.4"
-lazycell = "0.6"
+lazycell = "1"
 slab = "0.4"
 
 [[test]]
