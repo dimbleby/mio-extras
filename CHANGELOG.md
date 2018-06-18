@@ -1,3 +1,7 @@
+## 2.0.5 (18 Jun 2018)
+
+* update `lazycell` from 0.6 -> 1.0
+
 ## 2.0.4 (7 Apr 2018)
 
 * Bump mio dependency (fixes minimal-versions build)
