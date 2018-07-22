@@ -1,3 +1,7 @@
+## Unreleased
+
+* fix license metadata in `Cargo.toml` (thanks @ignatenkobrain)
+
 ## 2.0.5 (18 Jun 2018)
 
 * update `lazycell` from 0.6 -> 1.0
