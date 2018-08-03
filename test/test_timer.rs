@@ -166,7 +166,8 @@ fn test_edge_without_polling() {
     assert!(is_about(400, ms), "actual={:?}", ms);
 
     let ms = elapsed(|| {
-        let num = poll.poll(&mut events, Some(Duration::from_millis(300)))
+        let num = poll
+            .poll(&mut events, Some(Duration::from_millis(300)))
             .unwrap();
         assert_eq!(num, 0);
     });
@@ -229,7 +230,8 @@ fn test_edge_oneshot_triggered() {
     assert!(is_about(200, ms), "actual={:?}", ms);
 
     let ms = elapsed(|| {
-        let num = poll.poll(&mut events, Some(Duration::from_millis(300)))
+        let num = poll
+            .poll(&mut events, Some(Duration::from_millis(300)))
             .unwrap();
         assert_eq!(num, 0);
     });
