@@ -156,7 +156,7 @@ impl<T> Timer<T> {
             next_tick: TICK_MAX,
             head: EMPTY,
         }).take(num_slots)
-            .collect();
+        .collect();
 
         Timer {
             tick_ms,
@@ -432,8 +432,7 @@ impl<T> Evented for Timer<T> {
                 set_readiness,
                 wakeup_state,
                 wakeup_thread: thread_handle,
-            })
-            .expect("timer already registered");
+            }).expect("timer already registered");
 
         if let Some(next_tick) = self.next_tick() {
             self.schedule_readiness(next_tick);
