@@ -296,7 +296,7 @@ fn elapsed<F: FnMut()>(mut f: F) -> u64 {
     f();
 
     let elapsed = now.elapsed();
-    elapsed.as_secs() * 1000 + u64::from(elapsed.subsec_nanos() / 1_000_000)
+    elapsed.as_secs() * 1000 + u64::from(elapsed.subsec_millis())
 }
 
 fn is_about(expect: u64, val: u64) -> bool {
