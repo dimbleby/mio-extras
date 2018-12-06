@@ -94,7 +94,8 @@ pub fn test_poll_channel_oneshot() {
         Token(123),
         Ready::readable(),
         PollOpt::edge() | PollOpt::oneshot(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Wait, but nothing should happen
     let num = poll
@@ -146,7 +147,8 @@ pub fn test_poll_channel_oneshot() {
             Token(123),
             Ready::readable(),
             PollOpt::edge() | PollOpt::oneshot(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // Have an event
         let num = poll
@@ -167,7 +169,8 @@ pub fn test_poll_channel_oneshot() {
         Token(123),
         Ready::readable(),
         PollOpt::edge() | PollOpt::oneshot(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Have an event
     let num = poll
@@ -180,7 +183,8 @@ pub fn test_poll_channel_oneshot() {
         Token(123),
         Ready::readable(),
         PollOpt::edge() | PollOpt::oneshot(),
-    ).unwrap();
+    )
+    .unwrap();
 
     // Have an event
     let num = poll

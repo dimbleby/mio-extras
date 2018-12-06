@@ -155,7 +155,8 @@ impl<T> Timer<T> {
         let wheel = iter::repeat(WheelEntry {
             next_tick: TICK_MAX,
             head: EMPTY,
-        }).take(num_slots)
+        })
+        .take(num_slots)
         .collect();
 
         Timer {
@@ -432,7 +433,8 @@ impl<T> Evented for Timer<T> {
                 set_readiness,
                 wakeup_state,
                 wakeup_thread: thread_handle,
-            }).expect("timer already registered");
+            })
+            .expect("timer already registered");
 
         if let Some(next_tick) = self.next_tick() {
             self.schedule_readiness(next_tick);

@@ -218,7 +218,8 @@ fn test_edge_oneshot_triggered() {
         Token(0),
         Ready::readable(),
         PollOpt::edge() | PollOpt::oneshot(),
-    ).unwrap();
+    )
+    .unwrap();
 
     timer.set_timeout(Duration::from_millis(200), "hello");
 
@@ -243,7 +244,8 @@ fn test_edge_oneshot_triggered() {
         Token(0),
         Ready::readable(),
         PollOpt::edge() | PollOpt::oneshot(),
-    ).unwrap();
+    )
+    .unwrap();
 
     let ms = elapsed(|| {
         let num = poll.poll(&mut events, None).unwrap();
