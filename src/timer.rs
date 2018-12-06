@@ -1,5 +1,5 @@
 //! Timer optimized for I/O related operations
-use convert;
+use crate::convert;
 use lazycell::LazyCell;
 use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use slab::Slab;

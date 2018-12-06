@@ -1,4 +1,4 @@
-use expect_events;
+use crate::expect_events;
 use mio::event::Event;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::channel;
