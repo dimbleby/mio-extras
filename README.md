@@ -1,6 +1,6 @@
 # mio-extras
 
-Extra components for use with [Mio](https://github.com/carllerche/mio):
+Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 
 - a channel that implements `Evented`
 - a timer that implements `Evented`
