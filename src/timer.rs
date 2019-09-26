@@ -748,5 +748,4 @@ mod test {
     fn ms_to_tick<T>(timer: &Timer<T>, ms: u64) -> u64 {
         ms / timer.tick_ms
     }
-
 }
