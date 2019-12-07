@@ -1,4 +1,4 @@
-## Unreleased
+## 2.0.6 (7 Dec 2019)
 
 - fix license metadata in `Cargo.toml` (thanks @ignatenkobrain)
 
