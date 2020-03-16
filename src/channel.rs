@@ -370,24 +370,9 @@ impl<T> From<io::Error> for TrySendError<T> {
  *
  */
 
-impl<T: Any> error::Error for SendError<T> {
-    fn description(&self) -> &str {
-        match *self {
-            SendError::Io(ref io_err) => io_err.description(),
-            SendError::Disconnected(..) => "Disconnected",
-        }
-    }
-}
+impl<T: Any> error::Error for SendError<T> {}
 
-impl<T: Any> error::Error for TrySendError<T> {
-    fn description(&self) -> &str {
-        match *self {
-            TrySendError::Io(ref io_err) => io_err.description(),
-            TrySendError::Full(..) => "Full",
-            TrySendError::Disconnected(..) => "Disconnected",
-        }
-    }
-}
+impl<T: Any> error::Error for TrySendError<T> {}
 
 impl<T> fmt::Debug for SendError<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
