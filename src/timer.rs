@@ -359,20 +359,20 @@ impl<T> Timer<T> {
 
                 // Attempt to move the wakeup time forward
                 trace!("advancing the wakeup time; target={}; curr={}", tick, curr);
-                let actual =
-                    inner
-                        .wakeup_state
-                        .compare_and_swap(curr, tick as usize, Ordering::Release);
-
-                if actual == curr {
-                    // Signal to the wakeup thread that the wakeup time has
-                    // been changed.
-                    trace!("unparking wakeup thread");
-                    inner.wakeup_thread.thread().unpark();
-                    return;
+                match inner.wakeup_state.compare_exchange_weak(
+                    curr,
+                    tick as usize,
+                    Ordering::Release,
+                    Ordering::Relaxed,
+                ) {
+                    Ok(_) => {
+                        // Signal to the wakeup thread that the wakeup time has been changed.
+                        trace!("unparking wakeup thread");
+                        inner.wakeup_thread.thread().unpark();
+                        return;
+                    }
+                    Err(actual) => curr = actual,
                 }
-
-                curr = actual;
             }
         }
     }
@@ -528,16 +528,18 @@ fn spawn_wakeup_thread(
                 }
                 sleep_until_tick = state.load(Ordering::Acquire) as Tick;
             } else {
-                let actual =
-                    state.compare_and_swap(sleep_until_tick as usize, usize::MAX, Ordering::AcqRel)
-                        as Tick;
-
-                if actual == sleep_until_tick {
-                    trace!("setting readiness from wakeup thread");
-                    let _ = set_readiness.set_readiness(Ready::readable());
-                    sleep_until_tick = usize::MAX as Tick;
-                } else {
-                    sleep_until_tick = actual as Tick;
+                match state.compare_exchange_weak(
+                    sleep_until_tick as usize,
+                    usize::MAX,
+                    Ordering::AcqRel,
+                    Ordering::Acquire,
+                ) {
+                    Ok(_) => {
+                        trace!("setting readiness from wakeup thread");
+                        let _ = set_readiness.set_readiness(Ready::readable());
+                        sleep_until_tick = usize::MAX as Tick;
+                    }
+                    Err(actual) => sleep_until_tick = actual as Tick,
                 }
             }
         }
