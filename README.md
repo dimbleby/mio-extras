@@ -15,6 +15,9 @@ Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 This repository is forked from
 [`mio-more`](https://github.com/carllerche/mio-more), which is unmaintained.
 
+This library is not compatible with mio 0.7.
+However, there's a similar project named [`mio-misc`](https://github.com/onurzdg/mio-misc) that works with mio 0.7.
+
 I don't intend to do very much with this except for routine maintenance - bug
 fixes, updating dependencies, and suchlike.
 
