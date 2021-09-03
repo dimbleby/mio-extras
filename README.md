@@ -6,7 +6,7 @@ Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 - a timer that implements `Evented`
 
 [![Build Status](https://travis-ci.org/dimbleby/mio-extras.svg?branch=master)](https://travis-ci.org/dimbleby/mio-extras)
-[![crates.io](http://meritbadge.herokuapp.com/mio-extras)](https://crates.io/crates/mio-extras)
+[![crates.io](https://img.shields.io/crates/v/mio-extras.svg)](https://crates.io/crates/mio-extras)
 
 [Documentation](https://docs.rs/mio-extras).
 
