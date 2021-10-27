@@ -485,7 +485,9 @@ fn spawn_wakeup_thread(
     start: Instant,
     tick_ms: u64,
 ) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
+    thread::Builder::new()
+      .name( "mio_extras::timer : ".to_owned() + thread::current().name().unwrap_or("no name") )
+      .spawn(move || {
         let mut sleep_until_tick = state.load(Ordering::Acquire) as Tick;
 
         loop {
@@ -543,7 +545,7 @@ fn spawn_wakeup_thread(
                 }
             }
         }
-    })
+    }).unwrap()
 }
 
 fn duration_to_tick(elapsed: Duration, tick_ms: u64) -> Tick {
