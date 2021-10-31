@@ -1,8 +1,5 @@
 //! Extra components for use with Mio.
 #![deny(missing_docs)]
-extern crate lazycell;
-extern crate mio;
-extern crate slab;
 
 #[macro_use]
 extern crate log;

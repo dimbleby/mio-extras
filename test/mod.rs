@@ -1,6 +1,3 @@
-extern crate mio;
-extern crate mio_extras;
-
 use mio::event::Event;
 use mio::{Events, Poll};
 use std::time::Duration;
