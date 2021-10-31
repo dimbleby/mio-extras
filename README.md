@@ -5,8 +5,13 @@ Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 - a channel that implements `Evented`
 - a timer that implements `Evented`
 
-[![Build Status](https://travis-ci.org/dimbleby/mio-extras.svg?branch=master)](https://travis-ci.org/dimbleby/mio-extras)
-[![crates.io](https://img.shields.io/crates/v/mio-extras.svg)](https://crates.io/crates/mio-extras)
+[![Crates.io][crates-badge]][crates-url]
+[![Build Status][actions-badge]][actions-url]
+
+[crates-badge]: https://img.shields.io/crates/v/mio-extras.svg
+[crates-url]: https://crates.io/crates/mio-extras
+[actions-badge]: https://github.com/dimbleby/mio-extras/actions/workflows/build.yml/badge.svg
+[actions-url]: https://github.com/dimbleby/mio-extras/actions?query=workflow%3ACI+branch%3Amaster
 
 [Documentation](https://docs.rs/mio-extras).
 
