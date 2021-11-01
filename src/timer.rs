@@ -486,66 +486,70 @@ fn spawn_wakeup_thread(
     tick_ms: u64,
 ) -> thread::JoinHandle<()> {
     thread::Builder::new()
-      .name( "mio_extras::timer : ".to_owned() + thread::current().name().unwrap_or("no name") )
-      .spawn(move || {
-        let mut sleep_until_tick = state.load(Ordering::Acquire) as Tick;
+        .name(format!(
+            "mio_extras::timer : {}",
+            thread::current().name().unwrap_or("no name")
+        ))
+        .spawn(move || {
+            let mut sleep_until_tick = state.load(Ordering::Acquire) as Tick;
 
-        loop {
-            if sleep_until_tick == TERMINATE_THREAD as Tick {
-                return;
-            }
+            loop {
+                if sleep_until_tick == TERMINATE_THREAD as Tick {
+                    return;
+                }
 
-            let now_tick = current_tick(start, tick_ms);
+                let now_tick = current_tick(start, tick_ms);
 
-            trace!(
-                "wakeup thread: sleep_until_tick={:?}; now_tick={:?}",
-                sleep_until_tick,
-                now_tick
-            );
+                trace!(
+                    "wakeup thread: sleep_until_tick={:?}; now_tick={:?}",
+                    sleep_until_tick,
+                    now_tick
+                );
 
-            if now_tick < sleep_until_tick {
-                // Calling park_timeout with u64::MAX leads to undefined
-                // behavior in pthread, causing the park to return immediately
-                // and causing the thread to tightly spin. Instead of u64::MAX
-                // on large values, simply use a blocking park.
-                match tick_ms.checked_mul(sleep_until_tick - now_tick) {
-                    Some(sleep_duration) => {
-                        trace!(
+                if now_tick < sleep_until_tick {
+                    // Calling park_timeout with u64::MAX leads to undefined
+                    // behavior in pthread, causing the park to return immediately
+                    // and causing the thread to tightly spin. Instead of u64::MAX
+                    // on large values, simply use a blocking park.
+                    match tick_ms.checked_mul(sleep_until_tick - now_tick) {
+                        Some(sleep_duration) => {
+                            trace!(
                             "sleeping; tick_ms={}; now_tick={}; sleep_until_tick={}; duration={:?}",
                             tick_ms,
                             now_tick,
                             sleep_until_tick,
                             sleep_duration
                         );
-                        thread::park_timeout(Duration::from_millis(sleep_duration));
+                            thread::park_timeout(Duration::from_millis(sleep_duration));
+                        }
+                        None => {
+                            trace!(
+                                "sleeping; tick_ms={}; now_tick={}; blocking sleep",
+                                tick_ms,
+                                now_tick
+                            );
+                            thread::park();
+                        }
                     }
-                    None => {
-                        trace!(
-                            "sleeping; tick_ms={}; now_tick={}; blocking sleep",
-                            tick_ms,
-                            now_tick
-                        );
-                        thread::park();
+                    sleep_until_tick = state.load(Ordering::Acquire) as Tick;
+                } else {
+                    match state.compare_exchange_weak(
+                        sleep_until_tick as usize,
+                        usize::MAX,
+                        Ordering::AcqRel,
+                        Ordering::Acquire,
+                    ) {
+                        Ok(_) => {
+                            trace!("setting readiness from wakeup thread");
+                            let _ = set_readiness.set_readiness(Ready::readable());
+                            sleep_until_tick = usize::MAX as Tick;
+                        }
+                        Err(actual) => sleep_until_tick = actual as Tick,
                     }
-                }
-                sleep_until_tick = state.load(Ordering::Acquire) as Tick;
-            } else {
-                match state.compare_exchange_weak(
-                    sleep_until_tick as usize,
-                    usize::MAX,
-                    Ordering::AcqRel,
-                    Ordering::Acquire,
-                ) {
-                    Ok(_) => {
-                        trace!("setting readiness from wakeup thread");
-                        let _ = set_readiness.set_readiness(Ready::readable());
-                        sleep_until_tick = usize::MAX as Tick;
-                    }
-                    Err(actual) => sleep_until_tick = actual as Tick,
                 }
             }
-        }
-    }).unwrap()
+        })
+        .unwrap()
 }
 
 fn duration_to_tick(elapsed: Duration, tick_ms: u64) -> Tick {
