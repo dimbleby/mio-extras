@@ -284,7 +284,7 @@ fn test_cancel_timeout() {
 
         poll.poll(&mut events, Some(dur - elapsed)).unwrap();
 
-        while let Some(_) = timer.poll() {
+        while timer.poll().is_some() {
             panic!("did not expect to receive timeout");
         }
     }

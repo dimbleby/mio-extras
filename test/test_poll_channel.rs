@@ -353,7 +353,7 @@ pub fn test_sending_from_other_thread_while_polling() {
                 assert_eq!(1, num);
                 assert_eq!(events.iter().next().unwrap().token(), Token(0));
 
-                while let Ok(_) = rx.try_recv() {
+                while rx.try_recv().is_ok() {
                     recv += 1;
                 }
             }
