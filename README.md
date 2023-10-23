@@ -11,7 +11,7 @@ Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 [crates-badge]: https://img.shields.io/crates/v/mio-extras.svg
 [crates-url]: https://crates.io/crates/mio-extras
 [actions-badge]: https://github.com/dimbleby/mio-extras/actions/workflows/build.yml/badge.svg
-[actions-url]: https://github.com/dimbleby/mio-extras/actions?query=workflow%3ACI+branch%3Amaster
+[actions-url]: https://github.com/dimbleby/mio-extras/actions?query=workflow%3ACI+branch%3Amain
 
 [Documentation](https://docs.rs/mio-extras).
 

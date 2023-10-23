@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   schedule:
     - cron: "0 3 1 * *"
 
@@ -36,17 +36,28 @@ jobs:
             os: macos-latest
             rust: stable
             target: x86_64-apple-darwin
+          - build: win32
+            os: windows-latest
+            rust: stable
+            target: i686-pc-windows-msvc
+          - build: win64
+            os: windows-latest
+            rust: stable
+            target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: true
       - name: Install Rust (rustup)
         run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
         shell: bash
       - run: rustup target add ${{ matrix.target }}
+      - run: rustup component add clippy
       - run: cargo fmt -- --check
         if: matrix.build == 'x86_64'
         name: Check formatting
+      - run: cargo clippy -- -D warnings
+        name: Run clippy
+      - run: cargo build
+        name: Build
       - run: cargo test
         name: Run tests
       - run: |
