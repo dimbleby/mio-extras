@@ -10,7 +10,7 @@ readme        = "README.md"
 keywords      = ["io", "async", "non-blocking"]
 categories    = ["asynchronous"]
 exclude       = [".gitignore"]
-edition       = "2018"
+edition       = "2024"
 
 [dependencies]
 mio = "0.6.14"
