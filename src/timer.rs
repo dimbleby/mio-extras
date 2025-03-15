@@ -3,8 +3,8 @@ use crate::convert;
 use lazycell::LazyCell;
 use mio::{Evented, Poll, PollOpt, Ready, Registration, SetReadiness, Token};
 use slab::Slab;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 use std::{cmp, fmt, io, iter, thread};
 
@@ -185,9 +185,7 @@ impl<T> Timer<T> {
         let mut tick = duration_to_tick(delay_from_start, self.tick_ms);
         trace!(
             "setting timeout; delay={:?}; tick={:?}; current-tick={:?}",
-            delay_from_start,
-            tick,
-            self.tick
+            delay_from_start, tick, self.tick
         );
 
         // Always target at least 1 tick in the future
@@ -258,8 +256,7 @@ impl<T> Timer<T> {
     fn poll_to(&mut self, mut target_tick: Tick) -> Option<T> {
         trace!(
             "tick_to; target_tick={}; current_tick={}",
-            target_tick,
-            self.tick
+            target_tick, self.tick
         );
 
         if target_tick < self.tick {
@@ -413,10 +410,7 @@ impl<T> Evented for Timer<T> {
         opts: PollOpt,
     ) -> io::Result<()> {
         if self.inner.borrow().is_some() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                "timer already registered",
-            ));
+            return Err(io::Error::other("timer already registered"));
         }
 
         let (registration, set_readiness) = Registration::new2();
@@ -454,20 +448,14 @@ impl<T> Evented for Timer<T> {
     ) -> io::Result<()> {
         match self.inner.borrow() {
             Some(inner) => poll.reregister(&inner.registration, token, interest, opts),
-            None => Err(io::Error::new(
-                io::ErrorKind::Other,
-                "receiver not registered",
-            )),
+            None => Err(io::Error::other("receiver not registered")),
         }
     }
 
     fn deregister(&self, poll: &Poll) -> io::Result<()> {
         match self.inner.borrow() {
             Some(inner) => poll.deregister(&inner.registration),
-            None => Err(io::Error::new(
-                io::ErrorKind::Other,
-                "receiver not registered",
-            )),
+            None => Err(io::Error::other("receiver not registered")),
         }
     }
 }
