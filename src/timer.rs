@@ -219,7 +219,7 @@ impl<T> Timer<T> {
 
         self.schedule_readiness(tick);
 
-        trace!("inserted timout; slot={}; token={:?}", slot, token);
+        trace!("inserted timout; slot={slot}; token={token:?}");
 
         // Return the new timeout
         Timeout { token, tick }
@@ -266,7 +266,7 @@ impl<T> Timer<T> {
         while self.tick <= target_tick {
             let curr = self.next;
 
-            trace!("ticking; curr={:?}", curr);
+            trace!("ticking; curr={curr:?}");
 
             if curr == EMPTY {
                 self.tick += 1;
@@ -292,7 +292,7 @@ impl<T> Timer<T> {
                 let links = self.entries[curr.into()].links;
 
                 if links.tick <= self.tick {
-                    trace!("triggering; token={:?}", curr);
+                    trace!("triggering; token={curr:?}");
 
                     // Unlink will also advance self.next
                     self.unlink(&links, curr);
@@ -357,7 +357,7 @@ impl<T> Timer<T> {
                 }
 
                 // Attempt to move the wakeup time forward
-                trace!("advancing the wakeup time; target={}; curr={}", tick, curr);
+                trace!("advancing the wakeup time; target={tick}; curr={curr}");
                 match inner.wakeup_state.compare_exchange_weak(
                     curr,
                     tick as usize,
@@ -490,11 +490,7 @@ fn spawn_wakeup_thread(
 
                 let now_tick = current_tick(start, tick_ms);
 
-                trace!(
-                    "wakeup thread: sleep_until_tick={:?}; now_tick={:?}",
-                    sleep_until_tick,
-                    now_tick
-                );
+                trace!( "wakeup thread: sleep_until_tick={sleep_until_tick:?}; now_tick={now_tick:?}");
 
                 if now_tick < sleep_until_tick {
                     // Calling park_timeout with u64::MAX leads to undefined
@@ -504,19 +500,13 @@ fn spawn_wakeup_thread(
                     match tick_ms.checked_mul(sleep_until_tick - now_tick) {
                         Some(sleep_duration) => {
                             trace!(
-                            "sleeping; tick_ms={}; now_tick={}; sleep_until_tick={}; duration={:?}",
-                            tick_ms,
-                            now_tick,
-                            sleep_until_tick,
-                            sleep_duration
+                            "sleeping; tick_ms={tick_ms}; now_tick={now_tick}; sleep_until_tick={sleep_until_tick}; duration={sleep_duration:?}"
                         );
                             thread::park_timeout(Duration::from_millis(sleep_duration));
                         }
                         None => {
                             trace!(
-                                "sleeping; tick_ms={}; now_tick={}; blocking sleep",
-                                tick_ms,
-                                now_tick
+                                "sleeping; tick_ms={tick_ms}; now_tick={now_tick}; blocking sleep"
                             );
                             thread::park();
                         }
