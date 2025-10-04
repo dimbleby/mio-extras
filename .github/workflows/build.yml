@@ -60,7 +60,7 @@ jobs:
         run: rustup update ${{ matrix.rust }} --no-self-update && rustup default ${{ matrix.rust }}
         shell: bash
       - run: rustup target add ${{ matrix.target }}
-      - run: rustup component add clippy
+      - run: rustup component add clippy rustfmt
       - run: cargo fmt -- --check
         if: matrix.build == 'x86_64'
         name: Check formatting
