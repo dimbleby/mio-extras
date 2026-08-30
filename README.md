@@ -1,33 +1,28 @@
 # mio-extras
 
+> [!WARNING] This project is no longer maintained.
+>
+> The last release was 2.0.6 on 7 December 2019.
+> It targets Mio 0.6 and is incompatible with later Mio APIs.
+> The repository remains available for existing users, but no further releases,
+> fixes, or support are planned.
+
 Extra components for use with [Mio](https://github.com/tokio-rs/mio):
 
 - a channel that implements `Evented`
 - a timer that implements `Evented`
 
 [![Crates.io][crates-badge]][crates-url]
-[![Build Status][actions-badge]][actions-url]
 
 [crates-badge]: https://img.shields.io/crates/v/mio-extras.svg
 [crates-url]: https://crates.io/crates/mio-extras
-[actions-badge]: https://github.com/dimbleby/mio-extras/actions/workflows/build.yml/badge.svg
-[actions-url]: https://github.com/dimbleby/mio-extras/actions?query=workflow%3ACI+branch%3Amain
 
 [Documentation](https://docs.rs/mio-extras).
 
-## History and maintenance
+## History
 
 This repository is forked from
 [`mio-more`](https://github.com/carllerche/mio-more), which is unmaintained.
-
-This library is not compatible with mio 0.7.
-However, there's a similar project named [`mio-misc`](https://github.com/onurzdg/mio-misc) that works with mio 0.7.
-
-I don't intend to do very much with this except for routine maintenance - bug
-fixes, updating dependencies, and suchlike.
-
-However if you have some code that you think belongs here, then by all means
-raise an issue or open a pull request.
 
 # License
 
